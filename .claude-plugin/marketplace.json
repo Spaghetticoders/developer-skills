@@ -1,0 +1,15 @@
+{
+  "name": "spaghetticoders",
+  "description": "Le skill per Claude Code di Spaghetti Coders.",
+  "owner": {
+    "name": "Spaghetti Coders",
+    "url": "https://www.spaghetticoders.it"
+  },
+  "plugins": [
+    {
+      "name": "metodo",
+      "source": "./",
+      "description": "Sei skill per lavorare con Claude Code con metodo: dal ticket al piano, una squadra di agenti, verifica vera, consegna pulita."
+    }
+  ]
+}
