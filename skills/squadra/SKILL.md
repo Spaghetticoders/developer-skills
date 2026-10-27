@@ -224,6 +224,22 @@ Whoever doesn't write code gets spawned **without** write tools on the repo (a
 read-only `subagent_type`): an analyst who "while they were at it" fixed two
 lines has broken the separation that is the whole point of the team.
 
+The plugin ships one agent per role, with the tools already cut to fit, so the
+separation doesn't depend on remembering it:
+
+| role | `subagent_type` | can write |
+|---|---|---|
+| Functional analyst | `analyst` | no |
+| Pixel-perfect | `pixel-perfect` | no (Bash for Figma and the simulator) |
+| Developer | `general-purpose` | yes |
+| Reviewer + unit tests | `reviewer` | test files only |
+| Functional tester | `tester` | no (Bash for the simulator) |
+| Approver | `approver` | no, not even Bash: hand it the diff as a file |
+
+Installed as a plugin they are namespaced (`metodo:analyst` and so on). Their
+definitions already hold the role, the board format and the limits, so the
+briefing only adds the task, the files and the names of the others.
+
 ---
 
 ## The long loop

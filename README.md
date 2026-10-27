@@ -6,7 +6,7 @@
 
 <p align="center">
   <i>How we work in 2026: AI, code and method</i><br><br>
-  <b>Six Claude Code skills we use on every project.</b><br>
+  <b>Six Claude Code skills and five team agents we use on every project.</b><br>
   From ticket to release, with a method instead of guesswork.
 </p>
 
@@ -56,11 +56,12 @@ wrong: every line comes from a real defect.
 The skills are invoked as `/metodo:start-work`, `/metodo:squadra` and so on.
 Claude also uses them on its own when the task calls for it.
 
-**Or by hand**, copying the folders into your personal skills:
+**Or by hand**, copying skills and agents into your personal folders:
 
 ```sh
 git clone https://github.com/Spaghetticoders/developer-skills.git
 cp -R developer-skills/skills/* ~/.claude/skills/
+cp developer-skills/agents/*.md ~/.claude/agents/
 ```
 
 ## How to use it, in practice
@@ -80,6 +81,22 @@ cp -R developer-skills/skills/* ~/.claude/skills/
 
 For big jobs, `squadra` sets up a team of agents that pass the baton to each
 other, with a fresh approver at the end who can send everything back.
+
+## The team agents
+
+`squadra` spawns one agent per role. Each comes with its tools already cut to
+fit, so "whoever writes doesn't check" is enforced by permissions, not by memory.
+
+| Agent | Role | Can write |
+|---|---|---|
+| [`analyst`](agents/analyst.md) | Enumerates every use case and finds the holes in the logic | No |
+| [`pixel-perfect`](agents/pixel-perfect.md) | Compares every screen with its Figma node, with veto power | No |
+| [`reviewer`](agents/reviewer.md) | Writes the unit tests and proves each fix with `verify-for-real` | Tests only |
+| [`tester`](agents/tester.md) | Runs every use case, on the simulator when it's UI | No |
+| [`approver`](agents/approver.md) | Fresh eyes on the whole diff: APPROVED or ITERATE | No |
+
+The developer is a regular `general-purpose` agent. With the plugin installed
+the agents are available as `metodo:analyst`, `metodo:reviewer` and so on.
 
 ## Requirements
 
