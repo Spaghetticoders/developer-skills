@@ -2,9 +2,10 @@
   <img src=".claude-plugin/icon.png" width="96" alt="Spaghetti Coders">
 </p>
 
-<h1 align="center">How we work in 2026</h1>
+<h1 align="center">Developer Skills for Claude Code</h1>
 
 <p align="center">
+  <i>How we work in 2026: AI, code and method</i><br><br>
   <b>Six Claude Code skills we use on every project.</b><br>
   From ticket to release, with a method instead of guesswork.
 </p>
