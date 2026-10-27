@@ -1,54 +1,54 @@
 ---
 name: figma-check
-description: Scarica nodo e render dal Figma e li confronta con la schermata vera dell'app, misure comprese. Riconosce il token scaduto in una chiamata sola, e quando il disegno sembra sbagliato si ferma e chiede invece di decidere da solo.
+description: Downloads node and render from Figma and compares them with the app's real screen, measurements included. Recognises an expired token in a single call, and when the design looks wrong it stops and asks instead of deciding on its own.
 ---
 
-# Confrontare con il Figma
+# Comparing with Figma
 
-## Accesso
+## Access
 
-Il token personale di Figma sta in una variabile d'ambiente (`FIGMA_TOKEN`), mai
-nel repo. La file key sta nella documentazione del progetto. **Un progetto può
-avere più file**: chiedere un nodo al file sbagliato risponde `null` senza
-spiegare perché, ed è il primo posto dove si perde tempo.
+The Figma personal access token lives in an environment variable (`FIGMA_TOKEN`),
+never in the repo. The file key lives in the project docs. **A project can have
+more than one file**: asking the wrong file for a node returns `null` without
+saying why, and it's the first place time gets lost.
 
 ```sh
 curl -sH "X-Figma-Token: $FIGMA_TOKEN" "https://api.figma.com/v1/files/$KEY/nodes?ids=123:456"
 curl -sH "X-Figma-Token: $FIGMA_TOKEN" "https://api.figma.com/v1/images/$KEY?ids=123:456&format=png&scale=2"
 ```
 
-Gli id nelle URL usano `-`, nella API `:`. Il render torna un URL a scadenza
-breve: scaricalo subito.
+Ids use `-` in URLs and `:` in the API. The render comes back as a short-lived
+URL: download it right away.
 
-**Il token scade.** La firma è `{"status":403,"err":"Token expired"}` su
-**qualsiasi** chiamata, `/v1/me` compresa: provala per prima e saprai in un colpo
-se è il token o i permessi. Quando è scaduto, non cercare strade alternative:
-chiedi all'utente un token nuovo.
+**The token expires.** The signature is `{"status":403,"err":"Token expired"}` on
+**any** call, `/v1/me` included: try that one first and you'll know in one shot
+whether it's the token or the permissions. When it has expired, don't look for
+workarounds: ask the user for a new token.
 
-## Trovare il nodo
+## Finding the node
 
-Se hai solo il nome della schermata, scendi per livelli invece di indovinare:
-`?depth=1` dà le pagine, `?depth=2` le sezioni, poi i frame dentro la sezione.
+If you only have the screen's name, walk down level by level instead of guessing:
+`?depth=1` gives the pages, `?depth=2` the sections, then the frames inside the section.
 
-## Confrontare
+## Comparing
 
-Metti il render accanto alla cattura del simulatore (`gui-test`) e guarda **testi,
-misure e ordine**, non l'impressione generale. Per i testi, leggi `characters` dal
-nodo: è la fonte, non quello che si legge nel render.
+Put the render next to the simulator capture (`gui-test`) and look at **text,
+sizes and order**, not the general impression. For text, read `characters` from
+the node: that's the source, not what you read in the render.
 
-**Attenzione ai testi troncati.** Se un titolo finisce con dei puntini, controlla
-`textTruncation`, `maxLines` e la larghezza del riquadro: se non ci sono, i
-puntini **li ha scritti il designer** e non è un'elisione. Succede.
+**Watch out for truncated text.** If a title ends with an ellipsis, check
+`textTruncation`, `maxLines` and the box width: if they aren't there, **the
+designer typed the dots** and it isn't an elision. It happens.
 
-## Quando il disegno sembra sbagliato
+## When the design looks wrong
 
-**Fermati e chiedi prima di implementare.** Non inventare copy né misure, e non
-mettere in silenzio la versione che ti sembra giusta.
+**Stop and ask before implementing.** Don't invent copy or measurements, and
+don't silently ship the version that looks right to you.
 
-Non bloccare tutto il resto: implementa quello che non dipende da quella risposta,
-tieni in sospeso il pezzo incerto, e chiedi al momento giusto.
+Don't block everything else: implement what doesn't depend on that answer,
+hold back the uncertain piece, and ask at the right moment.
 
-Se l'utente decide di scostarsi dal nodo, **scrivilo dove qualcuno lo troverà**:
-un commento nel codice con l'id del nodo e la misura, la doc, e un test che
-fallisce se torna indietro. Altrimenti il prossimo che rilegge il Figma lo
-"ripristina" in buona fede.
+If the user decides to deviate from the node, **write it down where someone will
+find it**: a code comment with the node id and the measurement, the docs, and a
+test that fails if it goes back. Otherwise the next person who rereads Figma
+"restores" it in good faith.

@@ -1,14 +1,14 @@
-"""Pilota il simulatore iOS attraverso idb.
+"""Drive the iOS simulator through idb.
 
     import sim_drive as s
-    s.labels()                     # tutto quello che c'e' a schermo
-    s.tap_label('Impostazioni')    # scorre a cercarlo, poi tocca
-    s.shot('impostazioni.png')
+    s.labels()                 # everything on screen
+    s.tap_label('Settings')    # scrolls to find it, then taps
+    s.shot('settings.png')
 
-idb non muove il cursore del Mac e non pretende la finestra davanti, quindi il
-simulatore puo' restare dietro alle altre. Serve `idb_companion`.
+idb doesn't move the Mac's cursor and doesn't need the window in front, so the
+simulator can stay behind other windows. Requires `idb_companion`.
 
-Il simulatore si sceglie con SIM_UDID; senza, si usa il primo avviato.
+The simulator is picked with SIM_UDID; without it, the first booted one is used.
 """
 import json
 import os
@@ -25,7 +25,7 @@ def _booted_udid():
         for device in devices:
             if device.get('state') == 'Booted':
                 return device['udid']
-    raise RuntimeError('nessun simulatore avviato: avvialo o imposta SIM_UDID')
+    raise RuntimeError('no booted simulator: boot one or set SIM_UDID')
 
 
 UDID = os.environ.get('SIM_UDID') or _booted_udid()
@@ -47,11 +47,10 @@ def _read_tree():
 
 
 def tree(settle=0.35, tries=12):
-    """L'albero di accessibilita', letto quando la schermata sta ferma.
+    """The accessibility tree, read once the screen has settled.
 
-    Una lista che decelera restituisce riquadri diversi a ogni lettura, e
-    toccare su quei numeri fa finire sulla riga sbagliata. Qui si rilegge
-    finche' due letture non coincidono.
+    A decelerating list returns different frames on every read, and tapping on
+    those numbers lands on the wrong row. So it rereads until two reads match.
     """
     previous = None
     for _ in range(tries):
@@ -65,13 +64,13 @@ def tree(settle=0.35, tries=12):
 
 
 def labels(limit=None):
-    """Le etichette a schermo, nell'ordine in cui l'albero le riporta."""
+    """The labels on screen, in the order the tree reports them."""
     found = [e.get('AXLabel') for e in tree() if e.get('AXLabel')]
     return found[:limit] if limit else found
 
 
 def find(label, exact=False):
-    """Il primo elemento la cui etichetta contiene (o e') `label`."""
+    """The first element whose label contains (or equals) `label`."""
     for element in tree():
         current = element.get('AXLabel') or ''
         if (current == label) if exact else (label in current):
@@ -90,7 +89,7 @@ def tap(x, y):
 
 
 def swipe(x1, y1, x2, y2, duration=0.4):
-    """La durata e' il gesto: ~0.1 s e' un lancio, ~0.5 s un trascinamento."""
+    """The duration is the gesture: ~0.1 s is a fling, ~0.5 s a drag."""
     _idb('ui', 'swipe', str(x1), str(y1), str(x2), str(y2), '--duration', str(duration))
     time.sleep(0.4)
 
@@ -106,10 +105,10 @@ def scroll_up(times=1, x=40):
 
 
 def tap_label(label, exact=False, scrolls=8):
-    """Cerca l'etichetta scorrendo, poi tocca. Torna True se ha toccato.
+    """Scroll to find the label, then tap. Returns True if it tapped.
 
-    Attenzione: True dice solo che ha toccato qualcosa. Dove sei finito si
-    verifica rileggendo l'albero, non fidandosi di questo valore.
+    Careful: True only says it tapped something. Where you ended up is checked
+    by rereading the tree, not by trusting this value.
     """
     element = find(label, exact)
     if element:
@@ -132,7 +131,7 @@ def tap_label(label, exact=False, scrolls=8):
 
 
 def describe_point(x, y):
-    """Cosa c'e' in un punto: per i controlli che un'etichetta non ce l'hanno."""
+    """What is at a point: for controls that have no label."""
     out = _idb('ui', 'describe-point', str(x), str(y)).stdout
     try:
         return json.loads(out)
@@ -154,7 +153,7 @@ _SAFE_FOR_IDB_TEXT = set(
 )
 
 # Accessibility labels of the keys that switch the on-screen keyboard. They
-# follow the simulator language: the defaults are the Italian ones.
+# follow the simulator language: the defaults are for an Italian simulator.
 _KEY_SYMBOLS = os.environ.get('SIM_KEY_SYMBOLS', 'cifre')
 _KEY_LETTERS = os.environ.get('SIM_KEY_LETTERS', 'lettere')
 
@@ -214,13 +213,13 @@ def type_text(text, verify=True):
         if not on_symbols:
             if not _tap_key(_KEY_SYMBOLS):
                 raise RuntimeError(
-                    f"non trovo il tasto {_KEY_SYMBOLS!r}: la tastiera e' a schermo? "
-                    "Se il simulatore e' in un'altra lingua imposta SIM_KEY_SYMBOLS"
+                    f"key {_KEY_SYMBOLS!r} not found: is the keyboard on screen? "
+                    "If the simulator uses another language, set SIM_KEY_SYMBOLS"
                 )
             on_symbols = True
         if not _tap_key(chunk):
             raise RuntimeError(
-                f"il carattere {chunk!r} non e' sulla tastiera dei simboli"
+                f"character {chunk!r} is not on the symbols keyboard"
             )
     if on_symbols:
         _tap_key(_KEY_LETTERS)
@@ -230,7 +229,7 @@ def type_text(text, verify=True):
     seen = field_values()
     if not any(value == text for _, value in seen):
         raise AssertionError(
-            f"scritto {text!r} ma i campi a schermo portano {seen!r}"
+            f"typed {text!r} but the fields on screen hold {seen!r}"
         )
     return text
 

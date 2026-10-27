@@ -2,113 +2,114 @@
   <img src=".claude-plugin/icon.png" width="96" alt="Spaghetti Coders">
 </p>
 
-<h1 align="center">Come si lavora nel 2026</h1>
+<h1 align="center">How we work in 2026</h1>
 
 <p align="center">
-  <b>Sei skill per Claude Code che usiamo in ogni progetto.</b><br>
-  Dal ticket al rilascio, con un metodo invece che a caso.
+  <b>Six Claude Code skills we use on every project.</b><br>
+  From ticket to release, with a method instead of guesswork.
 </p>
 
 <p align="center">
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-skills-13F4C8?style=flat-square&labelColor=00070E">
-  <img alt="Licenza MIT" src="https://img.shields.io/badge/licenza-MIT-E3FF2C?style=flat-square&labelColor=00070E">
-  <img alt="Lingua" src="https://img.shields.io/badge/lingua-italiano-006DFF?style=flat-square&labelColor=00070E">
+  <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-E3FF2C?style=flat-square&labelColor=00070E">
+  <img alt="Language" src="https://img.shields.io/badge/language-English-006DFF?style=flat-square&labelColor=00070E">
 </p>
 
 ---
 
-L'AI scrive codice più veloce di chiunque. **Il difficile non è più scriverlo**:
-è sapere cosa chiederle, controllare quello che ha fatto e consegnarlo pulito.
+AI writes code faster than anyone. **Writing it is no longer the hard part**:
+the hard part is knowing what to ask for, checking what it did, and shipping it clean.
 
-Queste skill sono il nostro metodo, scritto in modo che Claude Code lo segua da
-solo. Non sono prompt magici. Sono le regole che abbiamo imparato sbagliando:
-ogni riga è nata da un difetto vero.
+These skills are our method, written so that Claude Code follows it on its own.
+They are not magic prompts. They are the rules we learned by getting things
+wrong: every line comes from a real defect.
 
-## Il metodo in quattro passaggi
+## The method in four steps
 
 ```
-  ticket ──▶ 01 PIANO ──▶ 02 SQUADRA ──▶ 03 VERIFICA ──▶ 04 CONSEGNA
-              │             │               │               │
-          start-work     squadra      verify-for-real     deliver
-                                      gui-test
-                                      figma-check
+  ticket ──▶ 01 PLAN ──▶ 02 TEAM ──▶ 03 VERIFY ──▶ 04 DELIVER
+              │            │            │               │
+          start-work    squadra    verify-for-real    deliver
+                                   gui-test
+                                   figma-check
 ```
 
-| | Skill | Cosa fa | Perché |
+| | Skill | What it does | Why |
 |---|---|---|---|
-| 01 | [`start-work`](skills/start-work/SKILL.md) | Legge le card e **i loro commenti**, scrive un piano e **si ferma** ad aspettare il via libera. Poi sviluppo, test, cicli di audit, report. | Senza un piano, l'AI ti dà codice a caso. |
-| 02 | [`squadra`](skills/squadra/SKILL.md) | Una squadra di agenti con ruoli separati (analista, sviluppatore, revisore, tester, approvatore) su un tabellone condiviso, a cancelli. | Chi scrive il codice non deve essere chi lo controlla. |
-| 03 | [`verify-for-real`](skills/verify-for-real/SKILL.md) | Rompi la correzione e guarda il test fallire. Inietta il guasto invece di dedurlo. Conta invece di stimare. | Quando l'AI dice "fatto!", non è vero finché non lo vedi. |
-| 03 | [`gui-test`](skills/gui-test/SKILL.md) | Pilota il simulatore iOS con idb: trova gli elementi per etichetta, tocca, scorre, scrive, cattura. Script incluso. | Una schermata non è verificata finché non la si è guardata. |
-| 03 | [`figma-check`](skills/figma-check/SKILL.md) | Scarica nodo e render dal Figma e li confronta con la schermata vera, misure comprese. | Testi, misure e ordine. Non l'impressione generale. |
-| 04 | [`deliver`](skills/deliver/SKILL.md) | Trasforma un albero sporco in commit disgiunti e leggibili. Non pusha mai se non glielo dici. | Il lavoro finisce quando arriva al cliente, non quando compila. |
+| 01 | [`start-work`](skills/start-work/SKILL.md) | Reads the cards and **their comments**, writes a plan and **stops** to wait for the go-ahead. Then development, tests, audit rounds, report. | Without a plan, AI gives you random code. |
+| 02 | [`squadra`](skills/squadra/SKILL.md) | A team of agents with separate roles (analyst, developer, reviewer, tester, approver) around a shared board, with gates. | Whoever writes the code must not be the one who checks it. |
+| 03 | [`verify-for-real`](skills/verify-for-real/SKILL.md) | Break the fix and watch the test fail. Inject the fault instead of deducing it. Count instead of estimating. | When AI says "done!", it isn't true until you see it. |
+| 03 | [`gui-test`](skills/gui-test/SKILL.md) | Drives the iOS simulator with idb: finds elements by label, taps, scrolls, types, captures. Script included. | A screen isn't verified until someone has looked at it. |
+| 03 | [`figma-check`](skills/figma-check/SKILL.md) | Downloads node and render from Figma and compares them with the real screen, measurements included. | Text, sizes and order. Not the general impression. |
+| 04 | [`deliver`](skills/deliver/SKILL.md) | Turns a dirty tree into disjoint, readable commits. Never pushes unless you say so. | Work is finished when it reaches the client, not when it compiles. |
 
-## Installazione
+## Installation
 
-**Come plugin** (consigliato), dentro Claude Code:
+**As a plugin** (recommended), inside Claude Code:
 
 ```
 /plugin marketplace add Spaghetticoders/developer-skills
 /plugin install metodo@spaghetticoders
 ```
 
-Le skill si invocano come `/metodo:start-work`, `/metodo:squadra` e così via.
-Claude le usa anche da solo quando il compito lo richiede.
+The skills are invoked as `/metodo:start-work`, `/metodo:squadra` and so on.
+Claude also uses them on its own when the task calls for it.
 
-**Oppure a mano**, copiando le cartelle tra le tue skill personali:
+**Or by hand**, copying the folders into your personal skills:
 
 ```sh
 git clone https://github.com/Spaghetticoders/developer-skills.git
 cp -R developer-skills/skills/* ~/.claude/skills/
 ```
 
-## Come si usa, in pratica
+## How to use it, in practice
 
 ```
 /metodo:start-work PROJ-142 PROJ-143
 ```
 
-1. Claude legge le due card e i commenti, guarda il codice, e ti presenta un piano.
-2. **Si ferma.** Tu leggi, correggi, dai il via.
-3. Sviluppa a fette. Ogni fetta passa dai test e dal simulatore (`gui-test`),
-   e se c'è un design dal confronto col Figma (`figma-check`).
-4. Ogni correzione passa da `verify-for-real`: si rompe, si guarda il test
-   fallire, si ripristina.
-5. Cicli di audit finché un giro intero trova solo cosmetica.
-6. Report finale. Il commit lo chiedi tu, con `deliver`.
+1. Claude reads both cards and their comments, looks at the code, and presents a plan.
+2. **It stops.** You read, correct, and give the go-ahead.
+3. It develops in slices. Every slice goes through the tests and the simulator
+   (`gui-test`), and through the Figma comparison when there is a design (`figma-check`).
+4. Every fix goes through `verify-for-real`: break it, watch the test fail,
+   restore it.
+5. Audit rounds until a whole round finds only cosmetic issues.
+6. Final report. You ask for the commit, with `deliver`.
 
-Per il lavoro grosso, `squadra` mette in piedi un team di agenti che si passano
-il testimone, con un approvatore nuovo alla fine che può rimandare tutto indietro.
+For big jobs, `squadra` sets up a team of agents that pass the baton to each
+other, with a fresh approver at the end who can send everything back.
 
-## Requisiti
+## Requirements
 
 - [Claude Code](https://claude.com/claude-code)
-- Per `squadra`: gli agent team attivi, `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
-- Per `gui-test`: macOS, Xcode e [idb](https://fbidb.io)
+- For `squadra`: agent teams enabled, `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
+- For `gui-test`: macOS, Xcode and [idb](https://fbidb.io)
   (`brew tap facebook/fb && brew install idb-companion`, `pip install fb-idb`)
-- Per `figma-check`: un token personale Figma in `FIGMA_TOKEN`
+- For `figma-check`: a Figma personal access token in `FIGMA_TOKEN`
 
-Gli esempi parlano di Flutter e iOS perché è quello che facciamo ogni giorno, ma
-`start-work`, `squadra`, `verify-for-real` e `deliver` valgono per qualunque stack.
+The examples talk about Flutter and iOS because that's what we do every day, but
+`start-work`, `squadra`, `verify-for-real` and `deliver` work for any stack.
 
-## Le regole dietro a tutto
+## The rules behind it all
 
-- **Prima il piano, poi il codice.** E in mezzo, un umano che dice sì.
-- **Chi scrive non controlla.** Revisore e tester sono sempre altri.
-- **"Fatto" vuol dire verificato.** Una correzione che non hai visto fallire non
-  è una correzione.
-- **Niente commit e niente push senza che tu lo chieda.** La storia del repo è tua.
+- **Plan first, then code.** And in between, a human who says yes.
+- **Whoever writes doesn't check.** Reviewer and tester are always someone else.
+- **"Done" means verified.** A fix you haven't seen fail is not a fix.
+- **No commits and no pushes unless you ask.** The repo history is yours.
 
-## Chi siamo
+## About us
 
-<a href="https://www.spaghetticoders.it"><b>Spaghetti Coders</b></a> sviluppa app
-Flutter, siti e prodotti digitali, con l'AI dentro il metodo e non al posto suo.
+<a href="https://www.spaghetticoders.it"><b>Spaghetti Coders</b></a> builds
+Flutter apps, websites and digital products, with AI inside the method rather
+than in place of it.
 
-Queste skill sono il regalo della live **"Come si lavora nel 2026: AI, codice e
-metodo"**. Se le usi e le migliori, apri una issue o una pull request.
+These skills are the gift from the live session **"Come si lavora nel 2026: AI,
+codice e metodo"** (How we work in 2026: AI, code and method). If you use them
+and improve them, open an issue or a pull request.
 
-Hai un progetto da far crescere? [Parliamone](https://www.spaghetticoders.it/spiegaciiltuoprogetto/).
+Got a project you want to grow? [Let's talk](https://www.spaghetticoders.it/spiegaciiltuoprogetto/).
 
-## Licenza
+## License
 
-[MIT](LICENSE). Usale, cambiale, portale nel tuo team.
+[MIT](LICENSE). Use them, change them, bring them to your team.

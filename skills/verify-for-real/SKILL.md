@@ -1,55 +1,53 @@
 ---
 name: verify-for-real
-description: I riti che trovano i difetti veri. Rompere la correzione per vedere il test fallire, iniettare il guasto invece di dedurlo, contare invece di stimare. Da usare prima di dire che qualcosa è corretto o verificato.
+description: The rituals that find real defects. Break the fix to watch the test fail, inject the fault instead of deducing it, count instead of estimating. Use before saying anything is fixed or verified.
 ---
 
-# Verificare davvero
+# Verifying for real
 
-Non automatizza niente. È la differenza fra «ho corretto» e «ho verificato», e
-nella pratica smentisce più deduzioni di quante ne confermi.
+It doesn't automate anything. It's the difference between "I fixed it" and
+"I verified it", and in practice it disproves more deductions than it confirms.
 
-## 1. Rompi la correzione e guarda il test fallire
+## 1. Break the fix and watch the test fail
 
-Un test che passa anche sul codice rotto non vale niente. Per ogni correzione:
-`cp` del file, rimetti il comportamento vecchio, lancia i test, **vedili fallire**,
-ripristina. Trenta secondi.
+A test that also passes on broken code is worth nothing. For every fix: `cp`
+the file, put the old behaviour back, run the tests, **watch them fail**,
+restore. Thirty seconds.
 
-Succede davvero che un test passi per il motivo sbagliato: la fixture non aveva
-il campo che il filtro richiede, quindi contava zero elementi e l'asserzione era
-vera per caso.
+Tests really do pass for the wrong reason: the fixture lacked the field the
+filter needs, so it counted zero items and the assertion was true by accident.
 
-## 2. Inietta il guasto, non dedurlo
+## 2. Inject the fault, don't deduce it
 
-Quando la conclusione è «se la rete cade succede X», non fermarti al codice:
-sostituisci la risposta con un errore, ricostruisci, e guarda.
+When the conclusion is "if the network drops, X happens", don't stop at the
+code: replace the response with an error, rebuild, and look.
 
-Costa una build e cambia la conclusione. Un caso reale: dal codice si deduceva
-«resta il profilo vecchio»; iniettando l'errore si è visto che **non partivano
-affatto** tre caricamenti a valle, e che il pull-to-refresh non recuperava. Cioè
-che da quello stato non si usciva senza chiudere l'app.
+It costs one build and it changes the conclusion. A real case: the code
+suggested "the old profile stays"; injecting the error showed that three
+downstream loads **never started at all**, and that pull-to-refresh didn't
+recover. In other words, there was no way out of that state without closing the app.
 
-**Il contatore che fa fallire solo il primo tentativo** (`static int _n; if (++_n == 1) return Error(...)`)
-mostra anche il recupero, e serve per le schermate da far vedere.
+**A counter that fails only the first attempt** (`static int _n; if (++_n == 1) return Error(...)`)
+also shows the recovery, and it's what you need for screens you have to demo.
 
-Tolta la sonda, verifica che non sia rimasto niente: `grep` sul marcatore.
+Once the probe is gone, check nothing was left behind: `grep` for the marker.
 
-## 3. Conta, non stimare
+## 3. Count, don't estimate
 
-«Mi sembra che parta due o tre volte» non è una misura. Contali.
+"It looks like it fires two or three times" is not a measurement. Count them.
 
-Attenzione al doppio conteggio: i logger di rete stampano **richiesta e risposta**,
-quindi due righe per chiamata. Un caso reale: sembravano 2-3 catene di chiamate,
-contate per endpoint era **una**, e la correzione che stava per essere scritta
-non serviva.
+Watch out for double counting: network loggers print **request and response**,
+so two lines per call. A real case: it looked like 2-3 call chains, counted per
+endpoint it was **one**, and the fix about to be written wasn't needed.
 
-## 4. Incrocia con una fonte esterna
+## 4. Cross-check with an external source
 
-Una schermata coerente con sé stessa non prova niente. Confrontala con qualcosa
-che sta fuori dall'app: il plist del simulatore, il log di rete, il nodo Figma,
-la risposta del backend. Le discrepanze lì sono i difetti veri.
+A screen consistent with itself proves nothing. Compare it with something
+outside the app: the simulator plist, the network log, the Figma node, the
+backend response. The mismatches there are the real defects.
 
-## 5. Enumera gli stati, non correggere il sintomo
+## 5. Enumerate the states, don't fix the symptom
 
-Se sbagli lo stesso confine due volte, stai correggendo il caso che hai appena
-visto. Apri il file degli stati e coprili tutti: la domanda giusta non è «questo
-caso è coperto?» ma «quali sono tutti i casi?».
+If you get the same boundary wrong twice, you're fixing the case you just saw.
+Open the states file and cover all of them: the right question isn't "is this
+case covered?" but "what are all the cases?".

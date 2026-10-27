@@ -1,81 +1,81 @@
 ---
 name: deliver
-description: Trasforma un albero di lavoro sporco in commit disgiunti e leggibili, con messaggi in inglese. Non pusha mai se non gliel'hanno detto, e se gli si indica un orario committa e pusha davvero a quell'ora.
+description: Turns a dirty working tree into disjoint, readable commits, with English messages. Never pushes unless told to, and when given a time it really commits and pushes at that time.
 ---
 
-# Consegnare
+# Delivering
 
-## Le regole che non cambiano
+## The rules that don't change
 
-- **Non pushare mai** se non lo dice l'utente. Il commit si propone, non si dà per
-  concesso: l'autorizzazione di ieri non vale oggi.
-- **Messaggi in inglese**, conventional commits.
-- **Commenti nel codice in inglese**, anche dove il file accanto li ha in
-  un'altra lingua.
-- **Firme dell'AI nei commit: decide il team, una volta.** Se il team non le
-  vuole (`Co-Authored-By`, «Generated with» in commit, PR e note di rilascio),
-  rendilo meccanico invece di affidarlo alla memoria: disattiva l'attribuzione
-  nelle impostazioni di Claude Code e metti un hook `commit-msg` che rifiuta il
-  messaggio se la contiene.
+- **Never push** unless the user says so. A commit is proposed, not taken for
+  granted: yesterday's authorisation doesn't hold today.
+- **Messages in English**, conventional commits.
+- **Code comments in English**, even where the file next door has them in
+  another language.
+- **AI signatures in commits: the team decides, once.** If the team doesn't want
+  them (`Co-Authored-By`, "Generated with" in commits, PRs and release notes),
+  make it mechanical instead of trusting memory: turn attribution off in the
+  Claude Code settings and add a `commit-msg` hook that rejects a message
+  containing it.
 
 ```sh
 # .git/hooks/commit-msg
 grep -qiE 'co-authored-by:.*(claude|anthropic)|generated with' "$1" \
-  && { echo "commit-msg: firma dell'AI nel messaggio"; exit 1; } || exit 0
+  && { echo "commit-msg: AI signature in the message"; exit 1; } || exit 0
 ```
 
-## Prima di committare
+## Before committing
 
-1. **Spazza la spazzatura**: `find . -name '._*' -not -path './.git/*' -delete` sui
-   volumi ExFAT o di rete, e controlla che non sia finita nell'indice.
-2. **Escludi i file locali.** Alcuni progetti hanno modifiche che non vanno mai
-   committate (scambi di framework per il simulatore, xcconfig locali). Stanno
-   nella documentazione del progetto. Dopo il commit, **verifica che siano
-   rimaste fuori**.
-3. **Controlla la lingua dei commenti aggiunti**, meccanicamente e non a memoria.
-   Esempio per chi lavora in italiano:
+1. **Sweep the junk**: `find . -name '._*' -not -path './.git/*' -delete` on
+   ExFAT or network volumes, and check none of it made it into the index.
+2. **Leave local files out.** Some projects have changes that must never be
+   committed (framework swaps for the simulator, local xcconfigs). They are
+   listed in the project docs. After the commit, **check they stayed out**.
+3. **Check the language of added comments**, mechanically and not from memory.
+   Example for people who work in Italian:
 
 ```sh
 git diff | grep '^+' | grep -vE '^\+\+\+' | sed 's/^+//' | grep -E '^\s*(///|//)' \
   | grep -iE '\b(che|non|della|delle|una|perché|quindi|senza|già|questo|questa)\b'
 ```
 
-   Se stampa qualcosa, l'hai scritto in italiano. Succede perché la conversazione
-   è in italiano e si scrive nella lingua in cui si pensa: il controllo lo prende,
-   la buona volontà no.
+   If it prints anything, you wrote it in Italian. It happens because the
+   conversation is in Italian and you write in the language you think in: the
+   check catches it, good intentions don't.
 
-## Raggruppare
+## Grouping
 
-Con molti file modificati, un commit solo è illeggibile. Partiziona in gruppi
-**disgiunti**, un tema per commit, e verifica prima di eseguire:
+With many modified files, a single commit is unreadable. Partition them into
+**disjoint** groups, one theme per commit, and check before running:
 
-- ogni file modificato sta in esattamente un gruppo;
-- nessun gruppo nomina file che non sono cambiati.
+- every modified file is in exactly one group;
+- no group names files that haven't changed.
 
-Un file toccato da due temi diversi va in un gruppo solo: scegli quello che
-racconta il perché, e menziona l'altro nel corpo del messaggio.
+A file touched by two different themes goes into one group only: pick the one
+that tells the why, and mention the other in the message body.
 
-## I commit a orario indicato
+## Commits at a given time
 
-Se l'utente dice «committa alle 17:54», il commit e il push devono avvenire
-**davvero a quell'ora**, non prima con la data riscritta.
+If the user says "commit at 17:54", the commit and the push must happen
+**really at that time**, not earlier with a rewritten date.
 
-Prepara i gruppi e i messaggi, programma l'esecuzione, e **non toccare i file di
-quei gruppi** finché non è scattata: il comando aggiunge quello che trova in quel
-momento, quindi un'altra modifica nel frattempo finirebbe dentro. Lavora su file
-diversi nell'attesa, e verifica il log dopo.
+Prepare the groups and the messages, schedule the run, and **don't touch the
+files in those groups** until it has fired: the command adds whatever it finds
+at that moment, so any other change in between would end up inside. Work on
+other files while you wait, and check the log afterwards.
 
-**E non mettere niente in staging nell'attesa.** `git add <percorsi>` seguito da
-`git commit -F <file>` committa **tutto l'indice**, non solo i percorsi aggiunti:
-il lavoro fatto nel frattempo e messo in staging finirebbe dentro al commit
-programmato con un messaggio che non lo riguarda. Prima di ogni orario, controlla
-che `git diff --cached --name-only` non stampi niente.
+**And don't stage anything while you wait.** `git add <paths>` followed by
+`git commit -F <file>` commits **the whole index**, not just the added paths:
+work done in the meantime and staged would end up in the scheduled commit with
+a message that has nothing to do with it. Before each scheduled time, check that
+`git diff --cached --name-only` prints nothing.
 
-**Verifica dopo, sui commit e non sullo stato di lavoro.** Che un file sia ancora
-modificato non dimostra che non sia stato committato prima:
-`git log --name-only --format=%h <base>..HEAD | grep '^ios/'` è la domanda giusta.
+**Verify afterwards, on the commits and not on the working state.** A file that
+is still modified doesn't prove it wasn't committed earlier:
+`git log --name-only --format=%h <base>..HEAD | grep '^ios/'` is the right question.
 
-## Il messaggio
+## The message
 
-Dice **cosa cambia e perché**, non quali righe. Se la correzione nasce da una
-misura, la misura sta nel corpo: è quella che rende il commit utile fra sei mesi.
+It says **what changes and why**, not which lines. If the fix comes from a
+measurement, the measurement goes in the body: that's what makes the commit
+useful six months from now.

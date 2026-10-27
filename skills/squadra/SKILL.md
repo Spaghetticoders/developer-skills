@@ -1,321 +1,314 @@
 ---
 name: squadra
-description: Porta una richiesta al risultato con una squadra di teammate coordinati (agent team) su un tabellone condiviso. Analista, pixel-perfect, sviluppatore, revisore, tester, approvatore lavorano a cancelli, in ciclo, finché il lavoro non è perfetto. Si invoca quando il lavoro vale più di una testa sola.
+description: Takes a request to the finish line with a team of coordinated teammates (agent team) around a shared board. Analyst, pixel-perfect, developer, reviewer, tester and approver work through gates, in a loop, until the work is perfect. Use when the job is worth more than one head.
 ---
 
-# Lavorare in squadra
+# Working as a team
 
-Una squadra di agenti attorno a un tabellone. Non è «più agenti perché sono
-tanti»: è **separare chi scrive da chi controlla**, perché chi ha appena scritto
-una riga è la persona meno adatta a vederne il difetto.
+A team of agents around a board. It isn't "more agents because there are many":
+it's **separating who writes from who checks**, because whoever just wrote a
+line is the person least suited to spot its defect.
 
-La squadra è un **agent team**, non una fila di subagent usa-e-getta: ogni
-membro ha un nome, resta vivo fra un giro e l'altro, e parla con gli altri.
-Serve `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` nell'ambiente (per esempio in
-`~/.zshrc`); senza, un agente con nome è un subagent qualunque e il protocollo
-degrada a «il PM fa da ponte» (vedi *Il ciclo lungo*).
+The team is an **agent team**, not a row of throwaway subagents: every member
+has a name, stays alive between rounds, and talks to the others. It needs
+`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in the environment (for example in
+`~/.zshrc`); without it, a named agent is just a regular subagent and the
+protocol degrades to "the PM acts as the bridge" (see *The long loop*).
 
-Costa — un teammate è un'istanza intera, più cara di un subagent. Un giro
-completo sono 6-10 agenti e parecchi minuti. Per una correzione di tre righe non
-si convoca la squadra: si fa, si rompe, si guarda il test fallire.
+It costs: a teammate is a whole instance, more expensive than a subagent. A full
+round is 6-10 agents and several minutes. A three-line fix doesn't call for the
+team: you make it, break it, and watch the test fail.
 
 ---
 
-## Come parlano davvero fra loro
+## How they actually talk to each other
 
-Tre cose, e conviene saperle prima di prometterne altre.
+Three things, and it's worth knowing them before promising more.
 
-**Il tabellone.** Un file in append, uno per lavorazione:
-`<scratchpad>/squadra/<slug>/TABELLONE.md`. Ogni agente **lo legge per intero
-all'inizio** ed è la memoria condivisa: l'unica cosa che sopravvive alla
-sessione, e quindi l'unica fonte di verità. Un messaggio fra due agenti che non
-finisce sul tabellone non è successo.
+**The board.** An append-only file, one per piece of work:
+`<scratchpad>/squadra/<slug>/BOARD.md`. Every agent **reads it in full at the
+start** and it's the shared memory: the only thing that survives the session,
+and so the only source of truth. A message between two agents that doesn't make
+it onto the board didn't happen.
 
-**Ci scrive chi può.** Gli agenti in sola lettura — analista, pixel, tester,
-approvatore — **non hanno gli strumenti per appendere**, ed è voluto: se glieli
-dessi per il tabellone li avrebbero anche per il repo. Quindi **chiudono il loro
-turno con il blocco già formattato, pronto da incollare**, e **il PM lo appende
-per loro**. È il PM il segretario della riunione, non i partecipanti.
+**Whoever can, writes to it.** The read-only agents (analyst, pixel, tester,
+approver) **don't have the tools to append**, and that's intended: if you gave
+them the tools for the board, they'd have them for the repo too. So they **end
+their turn with the block already formatted, ready to paste**, and **the PM
+appends it for them**. The PM is the meeting's secretary, not the participants.
 
-**I teammate si parlano, per nome.** Si spawnano con `Agent` + `name`
-(`dev`, `revisore`, `tester`, `pixel`, …) e si scrivono con `SendMessage`
-verso quel nome — **non c'è broadcast**: un messaggio, un destinatario. Lungo la
-catena del ciclo il testimone passa **direttamente**: il dev che finisce scrive
-al revisore, il revisore al tester. Due regole, perché il PM non perda il filo:
+**Teammates talk to each other by name.** They're spawned with `Agent` + `name`
+(`dev`, `reviewer`, `tester`, `pixel`, …) and they write with `SendMessage` to
+that name. **There's no broadcast**: one message, one recipient. Along the loop
+the baton passes **directly**: the dev who finishes writes to the reviewer, the
+reviewer to the tester. Two rules, so the PM doesn't lose track:
 
-- chi passa il testimone manda **anche al PM** una riga (cosa ha fatto, a chi lo
-  ha passato), e il PM la mette sul tabellone;
-- **`SendMessage` riuscito ≠ letto.** Un dev è rimasto fermo 35 minuti su
-  un'autorizzazione già data. Se un agente dice di essere bloccato su una cosa
-  decisa, si rimanda il messaggio invece di supporre.
+- whoever passes the baton **also** sends the PM one line (what they did, who
+  they passed it to), and the PM puts it on the board;
+- **a successful `SendMessage` ≠ read.** A dev once sat idle for 35 minutes on
+  an authorisation already given. If an agent says it's blocked on something
+  already decided, resend the message instead of assuming.
 
-Quando un teammate finisce il turno, **l'avviso di idle arriva da solo al PM**,
-con la sua risposta finale dentro: il PM non costruisce waiter e non aspetta
-prosa. Legge l'avviso, legge l'albero, appende.
+When a teammate ends its turn, **the idle notice reaches the PM by itself**,
+with its final answer inside: the PM doesn't build waiters or wait for prose. It
+reads the notice, reads the tree, appends.
 
-Un teammate **idle non è morto**: resta raggiungibile, e un `SendMessage` lo
-riprende con tutto il suo contesto. Il revisore del secondo giro è **lo stesso**
-del primo, e si ricorda i suoi rilievi — è il motivo per cui la squadra costa
-meno di quanto sembri. L'unica eccezione voluta è l'approvatore, che deve essere
-nuovo.
+An **idle teammate isn't dead**: it stays reachable, and a `SendMessage` resumes
+it with all its context. The second-round reviewer is **the same one** as the
+first, and remembers its findings: that's why the team costs less than it
+seems. The only intended exception is the approver, who must be new.
 
-**La lista compiti condivisa.** I teammate hanno `TaskCreate` / `TaskList` /
-`TaskUpdate`: una fetta = un compito, chi la prende la marca in corso, chi la
-chiude la marca fatta. È la tabella di chi-fa-cosa; **non sostituisce il
-tabellone**, che resta il registro ragionato. Il PM potrebbe non vedere quegli
-strumenti nella sua sessione (in alcune versioni al lead non compaiono): in quel
-caso li legge attraverso il tabellone e non ci costruisce sopra.
+**The shared task list.** Teammates have `TaskCreate` / `TaskList` /
+`TaskUpdate`: one slice = one task, whoever takes it marks it in progress,
+whoever closes it marks it done. It's the who-does-what table; **it doesn't
+replace the board**, which stays the reasoned record. The PM might not see
+those tools in its own session (in some versions they don't show up for the
+lead): in that case it reads them through the board and doesn't build on them.
 
-**Il PM è la sessione principale, non un agente.** Deviazione voluta dalla
-richiesta, e il motivo è che solo la sessione principale può: chiedere all'utente,
-tenere `flutter run` e il simulatore, rilanciare un agente, e restare viva fra un
-giro e l'altro. Un PM spawnato sarebbe un teammate che non può fare niente di
-tutto questo. Il PM **non fa il lavoro al posto della squadra**: quando un
-teammate sta lavorando, il PM aspetta l'avviso, non si mette a scrivere lui.
+**The PM is the main session, not an agent.** An intentional deviation, and the
+reason is that only the main session can: ask the user, hold `flutter run` and
+the simulator, relaunch an agent, and stay alive between rounds. A spawned PM
+would be a teammate that can do none of that. The PM **doesn't do the team's
+work**: while a teammate is working, the PM waits for the notice, it doesn't
+start writing itself.
 
-### Il formato del tabellone
+### The board format
 
 ```markdown
-# <slug> — <la richiesta in una riga>
-Ramo: <branch>   Avviata: <data ora>
+# <slug> — <the request in one line>
+Branch: <branch>   Started: <date time>
 
-## Richiesta
-<il testo dell'utente, verbatim>
+## Request
+<the user's text, verbatim>
 
-## Squadra
-dev · revisore · tester · pixel   (nomi dei teammate, così come spawnati)
+## Team
+dev · reviewer · tester · pixel   (teammate names, as spawned)
 
-## Registro
-### [ora] ANALISTA — <esito in tre parole>
-- **Trovato:** …
-- **Aperto:** …
-- **Per chi:** dev / pixel / tester
+## Log
+### [time] ANALYST — <outcome in three words>
+- **Found:** …
+- **Open:** …
+- **For:** dev / pixel / tester
 ```
 
-Una voce per agente per giro, con l'ora della macchina (`date`) in testa.
-**Niente riassunti del tabellone dentro il tabellone**: si appende, non si
-riscrive.
+One entry per agent per round, with the machine time (`date`) at the top.
+**No summaries of the board inside the board**: you append, you don't rewrite.
 
 ---
 
-## I ruoli
+## The roles
 
-Ognuno riceve dal PM: il suo nome, il percorso del tabellone, il suo compito in
-tre righe, i nomi degli altri e **che cosa deve produrre**. Nessuno riceve «fai
-del tuo meglio».
+Each one gets from the PM: its name, the board path, its task in three lines,
+the names of the others and **what it has to produce**. Nobody gets "do your best".
 
-| # | ruolo | fa | non fa |
+| # | role | does | doesn't |
 |---|---|---|---|
-| 1 | **PM** (sessione principale, lead del team) | coordina, apre e chiude i cancelli, rilancia il ciclo, chiede all'utente quando è bloccato | non scrive codice |
-| 2 | **Analista funzionale** | legge richiesta **e** codice, enumera i casi d'uso, trova i buchi nelle logiche | non corregge |
-| 3 | **Pixel-perfect** | confronta ogni schermata col nodo Figma, misura, ha **diritto di veto** sull'UI | non tocca la logica |
-| 4 | **Sviluppatore** | scrive il codice | non si auto-approva |
-| 5 | **Revisore + unit test** | scrive gli unit test, rilegge le logiche del dev, giudica la qualità | non riscrive la feature |
-| 6 | **Tester funzionale** | esercita tutti i casi d'uso, sul simulatore quando è UI | non corregge |
-| 7 | **Approvatore** | rilegge tutto a fine giro: **APPROVA** o **RI-ITERA** con rilievi puntuali | non è un timbro |
-| 8 | **Archivista** | solo dopo l'OK: memorie di progetto, doc, memoria di Claude | non parte prima |
+| 1 | **PM** (main session, team lead) | coordinates, opens and closes gates, restarts the loop, asks the user when blocked | doesn't write code |
+| 2 | **Functional analyst** | reads the request **and** the code, enumerates use cases, finds holes in the logic | doesn't fix |
+| 3 | **Pixel-perfect** | compares every screen with the Figma node, measures, has **veto power** over the UI | doesn't touch logic |
+| 4 | **Developer** | writes the code | doesn't approve itself |
+| 5 | **Reviewer + unit tests** | writes unit tests, rereads the dev's logic, judges quality | doesn't rewrite the feature |
+| 6 | **Functional tester** | exercises every use case, on the simulator when it's UI | doesn't fix |
+| 7 | **Approver** | rereads everything at the end of the round: **APPROVE** or **ITERATE** with specific findings | isn't a rubber stamp |
+| 8 | **Archivist** | only after the OK: project memories, docs, Claude's memory | doesn't start early |
 
-Il PM può spawnarne altri quando serve un mestiere che non c'è (sicurezza,
-prestazioni, accessibilità, backend). Vale la stessa regola: compito stretto,
-prodotto dichiarato.
+The PM can spawn others when a skill is missing (security, performance,
+accessibility, backend). Same rule: narrow task, declared output.
 
-**Tetto.** Vivi insieme, non più di **5-6**: si spawna un ruolo quando il suo
-cancello si avvicina, non tutti all'apertura. In totale il giro sta sotto i 15
-agenti; se ne servono di più, il lavoro va spezzato in due lavorazioni, non
-gonfiato.
+**Ceiling.** No more than **5-6** alive at once: a role is spawned when its gate
+is getting close, not all at the start. In total a round stays under 15 agents;
+if it needs more, the work gets split into two jobs, not inflated.
 
-**Un file, un proprietario.** Due teammate che scrivono lo stesso file si
-sovrascrivono a vicenda, e nessuno se ne accorge. Il PM assegna le fette per
-file, e lo scrive sul tabellone.
+**One file, one owner.** Two teammates writing the same file overwrite each
+other, and nobody notices. The PM assigns slices by file, and writes it on the board.
 
 ---
 
-## Il protocollo
+## The protocol
 
-Cancelli, non fasi. **Un cancello non si apre finché il suo criterio non è vero**,
-e il criterio è scritto, non a sensazione.
+Gates, not phases. **A gate doesn't open until its criterion is true**, and the
+criterion is written down, not a feeling.
 
-**0. Apertura.** Il PM crea il tabellone, ci copia la richiesta *verbatim*, e
-legge lo stato del repo (il ramo parte da `origin/main`, non dal `main` locale).
-Se la richiesta ha un'ambiguità che cambia il lavoro, si chiede **adesso** — non
-a metà.
+**0. Opening.** The PM creates the board, copies the request *verbatim*, and
+reads the state of the repo (the branch starts from `origin/main`, not the local
+`main`). If the request has an ambiguity that changes the work, ask **now**, not
+halfway through.
 
-**1. Capire.** Analista, e insieme il pixel-perfect se c'è UI. In parallelo: non
-dipendono l'uno dall'altro.
-→ *Cancello:* i casi d'uso sono enumerati e i nodi Figma identificati (o è
-scritto che non esistono).
+**1. Understand.** Analyst, and alongside it the pixel-perfect if there's UI. In
+parallel: they don't depend on each other.
+→ *Gate:* the use cases are enumerated and the Figma nodes identified (or it's
+written that they don't exist).
 
-**2. Piano.** Il PM lo scrive sul tabellone: cosa cambia, dove, cosa si rompe,
-cosa resta da decidere, **quale file è di chi**. Se c'è un punto che dipende
-dall'utente, si chiede qui.
-→ *Cancello:* il piano copre ogni buco che l'analista ha trovato, o dice perché no.
+**2. Plan.** The PM writes it on the board: what changes, where, what breaks,
+what's still to decide, **which file belongs to whom**. If a point depends on
+the user, ask here.
+→ *Gate:* the plan covers every hole the analyst found, or says why not.
 
-**3. Ciclo.** Per ogni fetta:
+**3. Loop.** For each slice:
 
 ```
-dev → revisore(+unit test) → tester → pixel (se UI)
+dev → reviewer(+unit tests) → tester → pixel (if UI)
         ↑                                    │
-        └──────── rilievi ───────────────────┘
+        └──────── findings ──────────────────┘
 ```
 
-Il testimone passa **da teammate a teammate** con `SendMessage`: chi finisce
-scrive al prossimo **quello che ha fatto e dove**, non tutto il tabellone, e
-avvisa il PM con una riga. I rilievi tornano al dev per la stessa via. Sono
-**gli stessi teammate** a ogni giro — il revisore riprende dai suoi rilievi, il
-dev dalle sue modifiche — finché un giro intero produce **solo rilievi
-cosmetici**: è il segnale che la curva è scesa.
+The baton passes **from teammate to teammate** with `SendMessage`: whoever
+finishes writes to the next one **what they did and where**, not the whole
+board, and tells the PM in one line. Findings go back to the dev the same way.
+They're **the same teammates** every round (the reviewer picks up from its
+findings, the dev from its changes) until a whole round produces **only cosmetic
+findings**: that's the sign the curve has flattened.
 
-Il PM resta fuori dalla catena ma non fuori dal giro: apre e chiude il cancello,
-e prima di spendere un dev dietro a un rilievo **ne verifica la fonte**.
-→ *Cancello:* test verdi, analyzer pulito, schermata vista, ogni correzione
-passata da `verify-for-real`.
+The PM stays out of the chain but not out of the round: it opens and closes the
+gate, and before spending a dev on a finding **it verifies the source**.
+→ *Gate:* green tests, clean analyzer, screen seen, every fix passed through
+`verify-for-real`.
 
-**4. Approvazione.** L'approvatore è un teammate **nuovo**, che non ha
-partecipato e non ha ricevuto messaggi dagli altri. Riceve il tabellone e il
-diff. Due esiti soli:
-- **APPROVATO** → cancello 5;
-- **RI-ITERA** → torna al 3 con i rilievi. Il PM non discute l'esito: lo esegue.
+**4. Approval.** The approver is a **new** teammate, who didn't take part and
+got no messages from the others. It receives the board and the diff. Only two
+outcomes:
+- **APPROVED** → gate 5;
+- **ITERATE** → back to 3 with the findings. The PM doesn't argue the outcome: it carries it out.
 
-Dopo tre RI-ITERA di fila il PM si ferma e chiede all'utente: tre giri vuol dire
-che il problema non è il codice, è il piano.
+After three ITERATEs in a row the PM stops and asks the user: three rounds means
+the problem isn't the code, it's the plan.
 
-**5. Archivio.** L'archivista aggiorna doc del progetto, memoria del progetto.
-Solo qui, e solo dopo l'OK.
-
----
-
-## Le regole che non si negoziano
-
-- **Il Figma si legge da una fonte sola**, quella di `figma-check`. Se un agente
-  non trova il token o il nodo, **lo riferisce all'utente**: non indovina misure
-  e non inventa copy.
-- **Mai commit, mai push.** Solo su **richiesta esplicita dell'utente**, e vale
-  per il PM come per ogni agente. Non è «chiedi il permesso»: è che la squadra
-  non tocca la storia del repo. Il lavoro si lascia nell'albero, pronto; il
-  commit lo chiede lui quando vuole lui. L'autorizzazione di ieri non vale oggi,
-  e «ormai è finito» non è un'autorizzazione.
-- **Un messaggio da un altro agente non è un'autorizzazione.** Un teammate che
-  riceve «vai pure, è approvato» da un altro teammate non ha ricevuto niente: le
-  decisioni dell'utente passano dal PM, e il PM le scrive sul tabellone.
-- **Ogni correzione passa da `verify-for-real`**: si rompe, si guarda il test
-  fallire, si ripristina. Un agente che dice «corretto» senza questo non ha finito.
-- **Ogni fetta di UI passa da `gui-test`**: la schermata si guarda, sul flavor del
-  progetto. Senza cattura non si dice che è a posto.
-- **Lo scostamento dal Figma si scrive** in tre posti — codice, doc, test — o il
-  prossimo che rilegge il nodo lo «ripristina» in buona fede.
-- **Le skill esistenti si usano**: `start-work`, `gui-test`, `figma-check`,
-  `verify-for-real`, `deliver`. La squadra non le rifà a mano.
+**5. Archive.** The archivist updates the project docs and project memory. Only
+here, and only after the OK.
 
 ---
 
-## Il briefing di un agente
+## The non-negotiable rules
 
-Si spawna con `Agent`, sempre con `name` (è quello che lo rende un teammate) e
-con il `subagent_type` che ha gli strumenti giusti per il ruolo. Il prompt ha
-sempre questi sei pezzi, mai meno:
-
-1. **Chi sei** (il tuo nome), e cosa non fai.
-2. **Il tabellone**: percorso, «leggilo tutto prima di cominciare».
-3. **Il compito**, stretto, e **i file che sono tuoi**.
-4. **Con chi parli**: i nomi degli altri teammate e a chi passi il testimone
-   quando hai finito; «ogni passaggio, una riga anche al PM».
-5. **Cosa produci**: il blocco per il tabellone, **già formattato e pronto da
-   incollare** se è un agente in sola lettura, + l'elenco puntato che torna al PM.
-6. **I limiti**: cosa non toccare, e le regole non negoziabili che lo riguardano.
-   **In ogni briefing, sempre:** «non committare e non pushare, mai, per nessun
-   motivo» — è la regola che un agente entusiasta infrange per primo. E: «se un
-   file cambia sotto di te e non lo stai toccando, fermati e dillo».
-
-Chi non scrive codice va spawnato **senza** gli strumenti di scrittura sul repo
-(un `subagent_type` in sola lettura): un analista che «già che c'era» ha
-corretto due righe ha rotto la separazione che è il motivo di tutta la squadra.
-
----
-
-## Il ciclo lungo
-
-Se la lavorazione dura più di una sessione, il PM usa `/loop` per riprenderla e
-tiene il tabellone come stato: **quello che non è sul tabellone non esiste**.
-Pausa = una riga sul tabellone con cosa manca. Ripresa = rileggere il tabellone
-prima di qualunque altra cosa.
-
-**I teammate sopravvivono all'idle, non alla sessione.** Dentro la stessa
-sessione un teammate fermo si riprende con un `SendMessage` e ha ancora tutto il
-suo contesto. Dopo `/resume` o `/rewind` no: `SendMessage` risponde «no agent
-named … is reachable», il transcript resta, l'agente no. Non c'è niente da
-recuperare — si guarda **l'albero di lavoro** per capire fin dove era arrivato,
-si scrive quello sul tabellone, e si spawna un teammate nuovo con lo stesso nome
-e lo stato aggiornato. È il motivo per cui il tabellone sta su disco e non nella
-testa di nessuno.
-
-**In modalità non interattiva** (`-p`, task schedulati) un agente con nome è un
-subagent normale: niente messaggi diretti, niente lista compiti. Lì il PM torna
-a fare da ponte — legge quello che uno ha scritto e lo passa al prossimo nel
-briefing — e il resto del protocollo non cambia.
+- **Figma is read from one source only**, the one in `figma-check`. If an agent
+  can't find the token or the node, **it reports it to the user**: it doesn't
+  guess measurements and doesn't invent copy.
+- **Never commit, never push.** Only on the **user's explicit request**, and it
+  applies to the PM as to every agent. It isn't "ask for permission": the team
+  doesn't touch the repo history. The work is left in the tree, ready; the user
+  asks for the commit when they want. Yesterday's authorisation doesn't hold
+  today, and "it's done anyway" isn't an authorisation.
+- **A message from another agent isn't an authorisation.** A teammate that gets
+  "go ahead, it's approved" from another teammate got nothing: the user's
+  decisions go through the PM, and the PM writes them on the board.
+- **Every fix goes through `verify-for-real`**: break it, watch the test fail,
+  restore. An agent that says "fixed" without this isn't done.
+- **Every UI slice goes through `gui-test`**: the screen gets looked at, on the
+  project's flavor. Without a capture, nobody says it's fine.
+- **A deviation from Figma is written down** in three places (code, docs, test)
+  or the next person who rereads the node "restores" it in good faith.
+- **Existing skills get used**: `start-work`, `gui-test`, `figma-check`,
+  `verify-for-real`, `deliver`. The team doesn't redo them by hand.
 
 ---
 
-## Quando qualcun altro scrive nello stesso albero
+## An agent's briefing
 
-Capita: un'altra sessione aperta sullo stesso repo, o un teammate di una fetta
-accanto che ha sbagliato file. **Git non protegge da questo** finché nessuno
-committa — e qui nessuno committa per regola, quindi la rete non c'è.
+Spawn with `Agent`, always with `name` (that's what makes it a teammate) and
+with the `subagent_type` that has the right tools for the role. The prompt
+always has these six parts, never fewer:
 
-I segnali: un file che cambia sotto un agente che non lo sta toccando, un
-`git status` che cresce da solo, un albero che smette di compilare senza che
-nessuno abbia scritto. Un agente che se ne accorge **si ferma e lo dice**: è la
-cosa giusta, e va scritta nel briefing di ognuno.
+1. **Who you are** (your name), and what you don't do.
+2. **The board**: path, "read all of it before you start".
+3. **The task**, narrow, and **the files that are yours**.
+4. **Who you talk to**: the other teammates' names and who you pass the baton to
+   when you're done; "every handoff, one line to the PM too".
+5. **What you produce**: the block for the board, **already formatted and ready
+   to paste** if it's a read-only agent, plus the bullet list that goes back to the PM.
+6. **The limits**: what not to touch, and the non-negotiable rules that concern it.
+   **In every briefing, always:** "don't commit and don't push, ever, for any
+   reason". It's the rule an eager agent breaks first. And: "if a file changes
+   under you and you're not touching it, stop and say so".
 
-Il PM allora fa tre cose, in quest'ordine:
+Whoever doesn't write code gets spawned **without** write tools on the repo (a
+read-only `subagent_type`): an analyst who "while they were at it" fixed two
+lines has broken the separation that is the whole point of the team.
 
-1. **Verifica** — timestamp dei file, `git status`, e se l'albero compila.
-2. **Mette un salvagente**: `git diff > salvagente/tracciati.patch` più una copia
-   dei file non tracciati, nello scratchpad. Non tocca la storia del repo, quindi
-   non viola la regola del mai-commit, e se qualcuno sovrascrive il lavoro si
-   recupera. **Prima di qualunque altra cosa.**
-3. **Cerca l'autore** — prima fra i suoi teammate (`ListAgents`, poi una domanda
-   per nome), poi fra le altre sessioni — e lo dice all'utente. Se la sessione
-   non risponde — il messaggio può restare in attesa della sua approvazione —
-   non si aspetta: si assegna a ogni agente solo quello che è suo, e si scrive
-   sul tabellone quali file sono «di altri».
+---
 
-Quello che il PM **non** fa: committare per «mettere in sicurezza». La regola vale
-anche quando committare sembrerebbe prudente.
+## The long loop
 
-## Cosa non deve succedere
+If the work lasts more than one session, the PM uses `/loop` to pick it up and
+keeps the board as the state: **what isn't on the board doesn't exist**.
+Pause = one line on the board with what's missing. Resume = reread the board
+before anything else.
 
-- **La squadra che si racconta il lavoro.** Se un giro produce solo voci di
-  tabellone e messaggi fra teammate, e nessuna riga di codice o di test, il PM
-  lo chiude e passa oltre.
-- **La conversazione che il PM non vede.** Dev e revisore che si scambiano dieci
-  messaggi e ne arriva uno solo sul tabellone. Il tabellone è la memoria: ogni
-  passaggio di testimone ha la sua riga, o per il prossimo giro non è esistito.
-- **Due agenti che leggono gli stessi file.** Il PM dà a ognuno il pezzo che gli
-  serve; le letture si pagano. E **due che scrivono lo stesso file** è peggio:
-  si sovrascrivono in silenzio.
-- **L'approvatore compiacente.** Se approva senza aver aperto il diff, il suo OK
-  non vale: il PM glielo rimanda con il diff in mano.
-- **Il PM che crede a un agente sulla parola.** Prima di spendere uno sviluppatore
-  dietro a un rilievo, il PM **ne verifica la fonte** — due minuti di `sed` sul
-  file citato. Un agente può sbagliare, e mandare il dev dietro a un difetto
-  fantasma è il modo più caro di sbagliare in due.
-- **Il PM che lavora al posto della squadra.** Il teammate è lento, il PM «nel
-  frattempo» corregge lui: ora due teste scrivono lo stesso albero e nessuna
-  delle due lo sa. Il PM aspetta l'avviso.
-- **L'archivista che parte prima.** Documentare una cosa che poi cambia è lavoro
-  buttato due volte.
-- **Il paragrafo che resta indietro sulla modifica dello stesso giro.** È il difetto
-  che si ripete più di ogni altro: si corregge il codice, si aggiorna *una* riga del
-  doc, e resta il paragrafo che dice il contrario — di solito quello che si incontra
-  per primo. In un audit solo è successo **tre volte**.
+**Teammates survive idle, not the session.** Within the same session an idle
+teammate is resumed with a `SendMessage` and still has all its context. After
+`/resume` or `/rewind` it doesn't: `SendMessage` answers "no agent named … is
+reachable", the transcript stays, the agent doesn't. There's nothing to recover:
+look at **the working tree** to see how far it got, write that on the board, and
+spawn a new teammate with the same name and the updated state. That's why the
+board lives on disk and not in anyone's head.
 
-  La regola che lo previene: **chi cambia un comportamento cerca il doc per
-  contenuto, non per posizione.** `grep` della vecchia regola in tutto `DOC/`, non
-  solo nella sezione che si sta toccando. Se una frase dice ancora la cosa vecchia
-  da un'altra parte, è dello stesso lavoro, non del prossimo.
+**In non-interactive mode** (`-p`, scheduled tasks) a named agent is a normal
+subagent: no direct messages, no task list. There the PM goes back to being the
+bridge (it reads what one wrote and passes it to the next in the briefing) and
+the rest of the protocol doesn't change.
 
-  E vale per la fonte, non solo per il doc: quando una prova è **più debole del
-  solito** — un nodo `EXPLORATION` invece di uno consegnato, una misura presa su un
-  caso solo — la debolezza viaggia **insieme** al riferimento. Tre id di nodo senza
-  la parola «esplorazione» accanto diventano, per chi legge dopo, tre frame
-  consegnati.
+---
+
+## When someone else writes in the same tree
+
+It happens: another session open on the same repo, or a teammate from a
+neighbouring slice that got the file wrong. **Git doesn't protect you from this**
+as long as nobody commits, and here nobody commits by rule, so there's no net.
+
+The signs: a file that changes under an agent that isn't touching it, a
+`git status` that grows by itself, a tree that stops compiling without anyone
+having written. An agent that notices **stops and says so**: it's the right
+thing, and it belongs in everyone's briefing.
+
+The PM then does three things, in this order:
+
+1. **Verifies**: file timestamps, `git status`, and whether the tree compiles.
+2. **Puts on a lifeline**: `git diff > lifeline/tracked.patch` plus a copy of the
+   untracked files, in the scratchpad. It doesn't touch the repo history, so it
+   doesn't break the never-commit rule, and if someone overwrites the work it
+   can be recovered. **Before anything else.**
+3. **Looks for the author**: first among its teammates (`ListAgents`, then a
+   question by name), then among the other sessions, and tells the user. If the
+   session doesn't answer (the message may be waiting for its approval), don't
+   wait: assign each agent only what is theirs, and write on the board which
+   files are "someone else's".
+
+What the PM **doesn't** do: commit "to be safe". The rule holds even when
+committing would seem prudent.
+
+## What must not happen
+
+- **The team narrating the work to itself.** If a round produces only board
+  entries and messages between teammates, and not a single line of code or
+  test, the PM closes it and moves on.
+- **The conversation the PM doesn't see.** Dev and reviewer trade ten messages
+  and only one reaches the board. The board is the memory: every baton handoff
+  gets its line, or for the next round it never happened.
+- **Two agents reading the same files.** The PM gives each one the piece it
+  needs; reads cost money. And **two writing the same file** is worse: they
+  overwrite each other silently.
+- **The complacent approver.** If it approves without opening the diff, its OK
+  doesn't count: the PM sends it back with the diff in hand.
+- **The PM taking an agent at its word.** Before spending a developer on a
+  finding, the PM **verifies its source**: two minutes of `sed` on the cited
+  file. An agent can be wrong, and sending the dev after a phantom defect is the
+  most expensive way to be wrong twice.
+- **The PM doing the team's work.** The teammate is slow, so the PM "meanwhile"
+  fixes it itself: now two heads write the same tree and neither knows. The PM
+  waits for the notice.
+- **The archivist starting early.** Documenting something that then changes is
+  work thrown away twice.
+- **The paragraph left behind by a change in the same round.** It's the defect
+  that repeats more than any other: the code gets fixed, *one* line of the docs
+  gets updated, and the paragraph that says the opposite stays, usually the one
+  you meet first. In a single audit it happened **three times**.
+
+  The rule that prevents it: **whoever changes a behaviour searches the docs by
+  content, not by position.** `grep` the old rule across all of `DOC/`, not just
+  the section you're touching. If a sentence still says the old thing somewhere
+  else, it belongs to the same job, not the next one.
+
+  And it applies to the source, not just the docs: when a piece of evidence is
+  **weaker than usual** (an `EXPLORATION` node instead of a delivered one, a
+  measurement taken on a single case), the weakness travels **together** with
+  the reference. Three node ids without the word "exploration" next to them
+  become, for whoever reads later, three delivered frames.

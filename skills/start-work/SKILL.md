@@ -1,72 +1,72 @@
 ---
 name: start-work
-description: Avvia una lavorazione da una lista di ticket (Jira, Linear, ClickUp) o da una descrizione. Legge le card e i loro commenti, scrive un piano e si ferma ad aspettare il via libera. Poi esegue il protocollo completo (branch, sviluppo, test, gui-test, cicli di audit, report) senza committare finché non glielo si dice.
+description: Starts a piece of work from a list of tickets (Jira, Linear, ClickUp) or from a description. Reads the cards and their comments, writes a plan and stops to wait for the go-ahead. Then runs the full protocol (branch, development, tests, gui-test, audit rounds, report) without committing until told to.
 ---
 
-# Avviare una lavorazione
+# Starting a piece of work
 
-Si invoca con una lista di ticket, o con una descrizione a parole. Tutto il resto
-di questo file è il protocollo: vale anche quando l'utente non lo ripete.
+Invoked with a list of tickets, or with a description in words. Everything else
+in this file is the protocol: it applies even when the user doesn't repeat it.
 
-## 1. Capire, prima di pianificare
+## 1. Understand before planning
 
-- **Leggi ogni card e i suoi commenti.** I commenti contengono correzioni di rotta
-  che la descrizione non ha: richieste di fix, decisioni prese a voce, nodi Figma.
-  Una card letta senza commenti è una card letta a metà.
-- **Guarda se è già fatto.** Prima di stimare, controlla il codice: capita che una
-  card descriva qualcosa che un altro ha già chiuso. Verificarlo costa un grep e
-  cambia il piano.
-- I fatti del progetto (ramo base, tracker, simulatore, flavor, file Figma)
-  stanno nella documentazione del progetto: `AGENTS.md`, `CLAUDE.md`, la memoria
-  di progetto. Leggili, non chiederli. Chiedi solo quello che davvero non c'è.
+- **Read every card and its comments.** Comments hold course corrections the
+  description doesn't: fix requests, decisions made in a call, Figma nodes.
+  A card read without its comments is a card read halfway.
+- **Check whether it's already done.** Before estimating, look at the code: a
+  card sometimes describes something someone else has already closed. Checking
+  costs a grep and changes the plan.
+- Project facts (base branch, tracker, simulator, flavor, Figma file) live in
+  the project docs: `AGENTS.md`, `CLAUDE.md`, the project memory. Read them,
+  don't ask for them. Only ask for what really isn't there.
 
-## 2. Il piano, e poi ci si ferma
+## 2. The plan, and then stop
 
-Un piano corto: cosa cambia, dove, cosa si rompe, cosa resta da decidere.
-**Poi ci si ferma e si aspetta il via libera.** Non toccare il codice prima.
+A short plan: what changes, where, what breaks, what is still to be decided.
+**Then stop and wait for the go-ahead.** Don't touch the code before that.
 
-Se durante la lettura emerge una domanda che cambierebbe il piano, falla adesso,
-non a metà lavorazione.
+If reading raises a question that would change the plan, ask it now, not
+halfway through the work.
 
-## 3. Esecuzione
+## 3. Execution
 
-Branch dal ramo base del progetto, con la convenzione che il repo usa già
-(guarda gli ultimi rami: `git for-each-ref --sort=-committerdate refs/remotes`).
+Branch from the project's base branch, following the convention the repo
+already uses (look at the latest branches: `git for-each-ref --sort=-committerdate refs/remotes`).
 
-Poi, per ogni slice: sviluppo → test → **gui-test sul simulatore** → si itera
-finché la schermata non è giusta. Vedi `gui-test` e `figma-check`.
+Then, for each slice: development → tests → **gui-test on the simulator** →
+iterate until the screen is right. See `gui-test` and `figma-check`.
 
-**I casi che non si producono a comando si mockano.** Se una condizione richiede
-dati che il backend non dà (un profilo vuoto, una cache scaduta, una rete
-assente) si costruisce una pagina mock in un menu di sviluppo, accanto alle altre
-del progetto. È anche il modo di far provare il caso a chi non sviluppa.
+**Cases that can't be produced on demand get mocked.** If a condition needs data
+the backend doesn't return (an empty profile, an expired cache, no network),
+build a mock page in a developer menu, next to the project's other ones. It's
+also how people who don't code get to try the case.
 
-## 4. I cicli di audit
+## 4. Audit rounds
 
-Audit 1, 2, ... N. Per *audit* si intende rileggere il diff **e** rilanciare test
-e gui-test, non solo guardare il codice.
+Audit 1, 2, ... N. An *audit* means rereading the diff **and** rerunning tests
+and gui-test, not just looking at the code.
 
-**Ci si ferma quando un giro intero produce solo rilievi cosmetici**: formattazione,
-un numero stantio in un doc. È il segnale che la curva è scesa: i primi giri
-trovano difetti veri, gli ultimi igiene. Poi un ultimo audit di sicurezza (cosa
-finisce su disco, cosa nei log, cosa sopravvive al logout) e un ultimo giro di test.
+**Stop when a whole round produces only cosmetic findings**: formatting, a stale
+number in a doc. That's the sign the curve has flattened: the first rounds find
+real defects, the last ones hygiene. Then one last security audit (what ends up
+on disk, what in the logs, what survives logout) and one last round of tests.
 
-Ogni correzione va verificata con `verify-for-real`: rompila e guarda il test
-fallire prima di tenerla.
+Every fix must be verified with `verify-for-real`: break it and watch the test
+fail before keeping it.
 
-## 5. Quando il disegno sembra sbagliato
+## 5. When the design looks wrong
 
-**Fermati e chiedi prima di implementare.** Non inventare copy né misure, e non
-implementare in silenzio la versione che ti sembra giusta.
+**Stop and ask before implementing.** Don't invent copy or measurements, and
+don't silently implement the version that looks right to you.
 
-Ma non bloccare tutto: fai tutto quello che non dipende da quella risposta, tieni
-in sospeso il solo pezzo incerto, e chiedi al momento giusto, non a fine turno.
-Se l'utente decide di scostarsi dal Figma, **lo scostamento va scritto** (codice,
-doc, test) o qualcuno lo "ripristinerà" rileggendo il nodo.
+But don't block everything: do all the work that doesn't depend on that answer,
+hold back only the uncertain piece, and ask at the right moment, not at the end
+of the turn. If the user decides to deviate from Figma, **the deviation must be
+written down** (code, docs, test) or someone will "restore" it by rereading the node.
 
-## 6. Chiusura
+## 6. Wrapping up
 
-- **Niente commit e niente push** finché non lo dice l'utente. Vedi `deliver`.
-- **Niente commenti sui ticket** se non lo chiede.
-- Un report finale: cosa è stato fatto, quali difetti sono emersi e come sono
-  stati misurati, cosa resta aperto e cosa aspetta una sua decisione.
+- **No commits and no pushes** until the user says so. See `deliver`.
+- **No comments on the tickets** unless asked.
+- A final report: what was done, which defects came up and how they were
+  measured, what is still open and what is waiting for the user's decision.

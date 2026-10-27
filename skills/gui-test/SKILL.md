@@ -1,105 +1,105 @@
 ---
 name: gui-test
-description: Pilota il simulatore iOS con idb per provare davvero una schermata. Trova gli elementi per etichetta nell'albero di accessibilità, tocca, scorre, scrive e cattura, e legge quello che ha visto invece di darlo per fatto.
+description: Drives the iOS simulator with idb to really try a screen. Finds elements by label in the accessibility tree, taps, scrolls, types and captures, and reads what it saw instead of assuming it worked.
 ---
 
-# Provare sul simulatore
+# Testing on the simulator
 
-Una schermata non è verificata finché non la si è guardata. Vale a ogni slice di
-UI: senza cattura, non si dice che è a posto.
+A screen isn't verified until someone has looked at it. This applies to every
+UI slice: without a capture, nobody says it's fine.
 
-## idb è la strada principale
+## idb is the main road
 
-`idb` parla col simulatore attraverso `idb_companion`: **non muove il cursore del
-Mac, non pretende la finestra davanti**, e funziona col simulatore dietro altre
-finestre.
+`idb` talks to the simulator through `idb_companion`: **it doesn't move the Mac's
+cursor, it doesn't need the window in front**, and it works with the simulator
+behind other windows.
 
 ```sh
 brew tap facebook/fb && brew install idb-companion
 pip install fb-idb
 ```
 
-Accanto a questa skill c'è `sim_drive.py`, che avvolge idb. Copialo in `tool/`
-del progetto. Prende il simulatore da `SIM_UDID`, o in mancanza il primo avviato.
+Next to this skill there's `sim_drive.py`, which wraps idb. Copy it into the
+project's `tool/` folder. It picks the simulator from `SIM_UDID`, or failing
+that the first booted one.
 
-## La differenza vera: si cerca per etichetta
+## The real difference: you search by label
 
-`idb ui describe-all` restituisce **l'albero di accessibilità**: etichetta,
-ruolo, riquadro in punti logici, abilitato o no. Quindi un pulsante si trova per
-nome, invece di ritagliare uno screenshot e rifare i conti sulla scala.
+`idb ui describe-all` returns **the accessibility tree**: label, role, frame in
+logical points, enabled or not. So a button is found by name, instead of
+cropping a screenshot and redoing the maths on the scale.
 
 ```python
 import sim_drive as s
-s.tap_label('Impostazioni')           # scorre in giù, poi dall'alto, poi tocca
-s.labels()                            # tutto quello che c'è a schermo
-s.describe_point(410, 94)             # cosa c'è in un punto, per i controlli senza etichetta
-s.shot('/tmp/impostazioni.png')       # la cattura, da guardare
+s.tap_label('Settings')               # scrolls down, then from the top, then taps
+s.labels()                            # everything on screen
+s.describe_point(410, 94)             # what's at a point, for controls without a label
+s.shot('/tmp/settings.png')           # the capture, to look at
 ```
 
-Cambia anche **cosa si può affermare**: `Button "Aiuto" a x=382` e nessun
-`"Indietro"` è una verifica, non un'occhiata a uno screenshot. Usa l'albero per
-le asserzioni e la cattura per l'aspetto.
+It also changes **what you can claim**: `Button "Help" at x=382` and no
+`"Back"` is a verification, not a glance at a screenshot. Use the tree for
+assertions and the capture for appearance.
 
-## Le regole che costano tempo se le ignori
+## The rules that cost time if you ignore them
 
-**L'albero contiene solo quello che è impaginato.** In una lista lunga la riga
-che serve c'è ma con riquadro nullo finché non la porti a schermo: si scorre
-finché il riquadro non è vero. `tap_label` lo fa da sé.
+**The tree only contains what has been laid out.** In a long list the row you
+need is there but with a null frame until you bring it on screen: scroll until
+the frame is real. `tap_label` does it by itself.
 
-**Un albero letto mentre la lista si muove fa toccare la riga sbagliata.** Dopo un
-lancio la lista decelera per un pezzo, e una pausa fissa non basta: `tree()`
-rilegge finché due letture non coincidono, e solo allora restituisce. Se un tocco
-non ha fatto quello che doveva, **il sospettato numero uno resta questo**. La
-verifica è controllare dove sei finito, non fidarsi del valore di ritorno di
-`tap_label`, che dice solo che ha toccato qualcosa.
+**A tree read while the list is moving makes you tap the wrong row.** After a
+fling the list keeps decelerating for a while, and a fixed pause isn't enough:
+`tree()` rereads until two reads match, and only then returns. If a tap didn't
+do what it should, **this is still suspect number one**. The check is to look
+at where you ended up, not to trust the return value of `tap_label`, which only
+says it tapped something.
 
-**La durata dello swipe è il gesto, non la velocità.** ~0,1 s è un lancio e manda
-la lista in fondo; 0,5 s è un trascinamento di circa quattro righe.
+**Swipe duration is the gesture, not the speed.** ~0.1 s is a fling and sends
+the list to the bottom; 0.5 s is a drag of about four rows.
 
-**Le webview sono opache.** Un login in webview espone solo il pulsante nativo
-che lo chiude: dentro, l'albero non vede niente. Lì si torna a coordinate e
-catture.
+**Webviews are opaque.** A login in a webview only exposes the native button
+that closes it: inside, the tree sees nothing. There you go back to coordinates
+and captures.
 
-## Scrivere testo
+## Typing text
 
-**`idb ui text` va bene solo per lettere e cifre.** Manda codici tasto americani,
-e un simulatore con un layout diverso li traduce in altro: con il layout
-italiano `@` arriva come `”`.
+**`idb ui text` is only safe for letters and digits.** It sends US key codes,
+and a simulator with a different layout translates them into something else:
+with the Italian layout `@` arrives as `”`.
 
-`s.type_text('...')` spezza il testo: i tratti sicuri passano da `idb ui text`,
-ogni altro carattere si tocca sulla tastiera a schermo, che ha il layout vero.
-Poi **rilegge il campo e solleva un errore se il valore non coincide**. Le
-etichette dei tasti che cambiano tastiera dipendono dalla lingua del simulatore:
-si impostano con `SIM_KEY_SYMBOLS` e `SIM_KEY_LETTERS`.
+`s.type_text('...')` splits the text: the safe runs go through `idb ui text`,
+every other character is tapped on the on-screen keyboard, which has the real
+layout. Then it **reads the field back and raises an error if the value doesn't
+match**. The labels of the keys that switch keyboards depend on the simulator
+language: set them with `SIM_KEY_SYMBOLS` and `SIM_KEY_LETTERS`.
 
-Tocca prima il centro **visibile** del campo, non il centro del suo riquadro di
-accessibilità: quel riquadro comprende anche l'etichetta, e il suo centro può
-cadere sul bordo e lasciare il focus sul campo precedente.
+Tap the **visible** centre of the field first, not the centre of its
+accessibility frame: that frame includes the caption too, and its centre can
+land on the border and leave focus on the previous field.
 
-## Prima della build
+## Before the build
 
-- **Spazza i file `._*`** se il repo sta su un volume ExFAT o di rete.
-- **Controlla se il progetto ha modifiche locali obbligatorie** per girare su
-  simulatore: stanno nella documentazione del progetto, di solito uno stash
-  «DO NOT PUSH».
-- Flavor e target stanno in `.vscode/launch.json` o nella doc del progetto.
-- **Profile e release non girano sul simulatore iOS**: per misurare jank o tempi
-  in AOT serve un dispositivo vero.
+- **Sweep the `._*` files** if the repo lives on an ExFAT or network volume.
+- **Check whether the project has mandatory local changes** to run on the
+  simulator: they're in the project docs, usually a "DO NOT PUSH" stash.
+- Flavor and target are in `.vscode/launch.json` or in the project docs.
+- **Profile and release don't run on the iOS simulator**: to measure jank or
+  timings in AOT you need a real device.
 
-Se ti servono i log di `flutter run`, non usare `simctl terminate`/`launch` per
-riavviare: staccano la sessione. Riavvia con `flutter run`.
+If you need the `flutter run` logs, don't use `simctl terminate`/`launch` to
+restart: they detach the session. Restart with `flutter run`.
 
-## Lasciare le cose come le hai trovate
+## Leave things as you found them
 
-Se per provare hai cambiato uno stato vero (un consenso, un indirizzo, una
-preferenza) **rimettilo com'era** e verificalo, anche su un account di prova. E
-dillo nel report.
+If you changed some real state to test (a consent, an address, a preference),
+**put it back as it was** and check it, even on a test account. And say so in
+the report.
 
-**Non disinstallare l'app** per essere sicuro della build: si porta via sessione e
-dati. `flutter run` reinstalla sopra.
+**Don't uninstall the app** to be sure of the build: it takes session and data
+with it. `flutter run` reinstalls on top.
 
-## Altro che idb sa fare
+## What else idb can do
 
-`set-location` (GPS finto), `send-notification` (push finte), `record` e `video`
-(registrare la sessione), `focus` (portare avanti il simulatore quando serve),
+`set-location` (fake GPS), `send-notification` (fake push), `record` and `video`
+(record the session), `focus` (bring the simulator to the front when needed),
 `log`, `add-media`.
