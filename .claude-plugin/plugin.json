@@ -3,6 +3,6 @@
   "description": "Sei skill per lavorare con Claude Code con metodo: dal ticket al piano, una squadra di agenti, verifica vera, consegna pulita.",
   "version": "1.0.0",
   "author": { "name": "Spaghetti Coders", "url": "https://www.spaghetticoders.it" },
-  "homepage": "https://github.com/Spaghetticoders/claude-code-skills",
+  "homepage": "https://github.com/Spaghetticoders/developer-skills",
   "license": "MIT"
 }

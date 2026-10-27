@@ -48,7 +48,7 @@ ogni riga è nata da un difetto vero.
 **Come plugin** (consigliato), dentro Claude Code:
 
 ```
-/plugin marketplace add Spaghetticoders/claude-code-skills
+/plugin marketplace add Spaghetticoders/developer-skills
 /plugin install metodo@spaghetticoders
 ```
 
@@ -58,8 +58,8 @@ Claude le usa anche da solo quando il compito lo richiede.
 **Oppure a mano**, copiando le cartelle tra le tue skill personali:
 
 ```sh
-git clone https://github.com/Spaghetticoders/claude-code-skills.git
-cp -R claude-code-skills/skills/* ~/.claude/skills/
+git clone https://github.com/Spaghetticoders/developer-skills.git
+cp -R developer-skills/skills/* ~/.claude/skills/
 ```
 
 ## Come si usa, in pratica
